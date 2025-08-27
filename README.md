@@ -1,8 +1,8 @@
 # GT86 ESPHome Clock 🚗
-
-Note: This README is a work in progress and may be updated with more details and instructions. An AI overview was used for now
-
 A custom ESPHome-based digital clock project featuring a Toyota GT86-themed OLED display with RTC backup and WiFi connectivity.
+
+_**Note:** This README is a work in progress and may be updated with more details and instructions. An AI overview was used for now_
+
 
 ## 🌟 Features
 
