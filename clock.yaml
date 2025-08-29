@@ -1,7 +1,8 @@
+# Define substitutions for the ESPHome configuration
 substitutions:
   timezone: "Europe/London"
   button_gpio:
-    hour: GPIO22
+    hour: GPIO15
     minute: GPIO23
     zero: GPIO24
   display_gpio:
@@ -10,7 +11,23 @@ substitutions:
   rtc_gpio:
     sda: GPIO17
     scl: GPIO16
+  can_gpio:
+    int: GPIO27
+    sck: GPIO25
+    si: GPIO32
+    so: GPIO12
+    cs: GPIO04
 
+# Enable the API for Home Assistant integration 
+api:
+  port: 6053
+  batch_delay: 50ms
+  encryption:
+    key: !secret api_encryption_key
+  reboot_timeout: 30min
+
+# Define ESPHome
+# On boot, read the time from the RTC
 esphome:
   name: gt86
   on_boot:
@@ -19,10 +36,13 @@ esphome:
         - ds1307.read_time:
             id: ds1307_time
         - logger.log: Time read by ds1307
-        
+
+# Define the ESP32 board type
 esp32:
   board: mhetesp32minikit
 
+# Setup WiFi
+# If internet connected, will update RTC with NTP time
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
@@ -30,10 +50,22 @@ wifi:
     ssid: "GT86"
     password: !secret ap_password
 
+# Enable the web UI for debugging
 web_server:
 
+# Enable logging but for INFO only
+# Setting to DEBUG will crash the ESP32 due to can bus logs
 logger:
+  level: INFO
 
+# Define the SPI pins
+spi:
+  - id: can_spi
+    clk_pin: ${can_gpio.sck}
+    mosi_pin: ${can_gpio.si}
+    miso_pin: ${can_gpio.so}
+
+# Define the I2C pins
 i2c:
   - id: oled
     sda: ${display_gpio.sda}
@@ -42,11 +74,9 @@ i2c:
     sda: ${rtc_gpio.sda}
     scl: ${rtc_gpio.scl}
 
-globals:
-  - id: page
-    type: int
-    initial_value: "1"
-
+# Define the time platform
+# Use NTP for time synchronization if we have internet and update the RTC
+# Otherwise, use the RTC
 time:
   - platform: sntp
     id: sntp_time
@@ -55,21 +85,18 @@ time:
       - 0.pool.ntp.org
       - 1.pool.ntp.org
       - 2.pool.ntp.org
-    # On time sync, set the RTC
     on_time_sync:
       then:
         - ds1307.write_time:
             id: ds1307_time
-        - logger.log: "RTC Updated from SNTP"
         - delay: 1s
         - ds1307.read_time: 
             id: ds1307_time
-        - logger.log: Time read by ds1307
-
   - platform: ds1307
     id: ds1307_time
     i2c_id: rtc
 
+# Load in XBM (binary images) images for the display 
 image:
   - id: car
     file: "images/car.xbm"
@@ -78,6 +105,8 @@ image:
     file: "images/logo.xbm"
     type: BINARY
 
+# Create sensors for the buttons
+# Work in progress still
 binary_sensor:
   - id: hour_button
     name: "Hour Button"
@@ -92,6 +121,7 @@ binary_sensor:
       then:
         - display.page.show_next: oled_display
 
+# Define our font. Still looking for the perfect one
 font:
   - id: font_small
     file: "blockblueprint.medium.ttf"
@@ -100,12 +130,13 @@ font:
     file: "blockblueprint.medium.ttf"
     size: 22
 
+# Define the display and build the pages
 display:
   - platform: ssd1306_i2c
     model: "SSD1306 128x32"
     id: oled_display
     i2c_id: oled
-    update_interval: 0.01s
+    update_interval: 0.1s
     pages:
       - id: p_splash
         lambda: |-
@@ -122,3 +153,19 @@ display:
       - id: p_date
         lambda: |-
           it.strftime(it.get_width() / 2, it.get_height() / 2, id(font_small), TextAlign::CENTER, "%d/%m/%y", id(ds1307_time).now());
+
+# Define the CAN bus
+# Listens to CAN messages to capture things like RPM, Oil pressure, etc
+# Work in progress - waiting for GT86
+canbus:
+  - platform: mcp2515
+    cs_pin: ${can_gpio.cs}
+    can_id: 4
+    bit_rate: 500kbps
+    # on_frame:
+    # - can_id: 0x451
+    #   then:
+    #   - lambda: |-
+    #       std::string b(x.begin(), x.end());
+    #       ESP_LOGI("can id 0x451", "%s", &b[0] );
+    

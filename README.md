@@ -1,5 +1,5 @@
 # GT86 ESPHome Clock 🚗
-A custom ESPHome-based digital clock project featuring a Toyota GT86-themed OLED display with RTC backup and WiFi connectivity.
+A custom ESPHome-based digital clock and CAN bus monitor project featuring a Toyota GT86-themed OLED display with RTC backup, WiFi connectivity, and OBD-II CAN bus integration.
 
 _**Note:** This README is a work in progress and may be updated with more details and instructions. An AI overview was used for now_
 
@@ -11,38 +11,63 @@ _**Note:** This README is a work in progress and may be updated with more detail
 - **WiFi Connectivity**: Auto-sync time from NTP servers
 - **Custom Graphics**: GT86 car silhouette and logo graphics
 - **Multiple Display Pages**: Splash screen, time display, and date display
-- **Button Control**: Physical button to cycle through display pages
+- **Button Control**: Multiple buttons for display control and time setting
+- **CAN Bus Integration**: MCP2515 CAN controller for OBD-II data (RPM, oil pressure, etc.)
+- **Home Assistant Integration**: API support for smart home integration
 - **Web Interface**: Built-in web server for monitoring
 - **Time Persistence**: RTC backup ensures accurate time even during power outages
 
 ## 📋 Hardware Requirements
 
 ### ESP32 Development Board
-- **Model**: ESP32 Mini Kit (or compatible)
+- **Model**: QuinLED ESP32 ([QuinLED ESP32](https://quinled.info/quinled-esp32/))
+- **Alternative**: MH-ET LIVE ESP32 MiniKit (compatible)
 - **GPIO Pins Used**:
   - GPIO18/GPIO26: OLED display (SDA/SCL)
   - GPIO17/GPIO16: DS1307 RTC (SDA/SCL)
-  - GPIO22: Hour/Page button
+  - GPIO15: Hour button
+  - GPIO23: Minute button
+  - GPIO24: Zero button
+  - GPIO25/GPIO32/GPIO12/GPIO04: MCP2515 CAN controller (SCK/SI/SO/CS)
+  - GPIO27: CAN interrupt pin
 
 ### Components
-- ESP32 development board (MH-ET LIVE ESP32 MiniKit)
+- QuinLED ESP32 development board (or MH-ET LIVE ESP32 MiniKit)
 - SSD1306 OLED display (128x32)
 - DS1307 Real-Time Clock module
-- Push button
+- MCP2515 CAN Bus controller module
+- 3x Push buttons (hour, minute, zero)
+- OBD-II connector with CAN bus access
 - Pull-up resistors (if not built into modules)
 - Breadboard and jumper wires
+
+### OBD-II CAN Bus Connection
+- **Pin 6 (High)**: CAN High signal line
+- **Pin 14 (Low)**: CAN Low signal line
+- Connect these to your MCP2515 CAN controller module
 
 ### Wiring Diagram
 
 ```
-ESP32 Mini Kit    →    Component
+QuinLED ESP32     →    Component
 GPIO18 (SDA)      →    OLED SDA
 GPIO26 (SCL)      →    OLED SCL
 GPIO17 (SDA)      →    DS1307 SDA  
 GPIO16 (SCL)      →    DS1307 SCL
-GPIO22            →    Button (with pull-up)
-3.3V              →    VCC (OLED & RTC)
-GND               →    GND (OLED & RTC & Button)
+GPIO15            →    Hour Button (with pull-up)
+GPIO23            →    Minute Button (with pull-up)
+GPIO24            →    Zero Button (with pull-up)
+GPIO25 (SCK)      →    MCP2515 SCK
+GPIO32 (SI)       →    MCP2515 SI (MOSI)
+GPIO12 (SO)       →    MCP2515 SO (MISO)
+GPIO04 (CS)       →    MCP2515 CS
+GPIO27            →    MCP2515 INT
+3.3V              →    VCC (OLED & RTC & MCP2515)
+GND               →    GND (All components)
+
+OBD-II Connector  →    MCP2515 CAN Module
+Pin 6 (CAN High)  →    CAN H
+Pin 14 (CAN Low)  →    CAN L
 ```
 
 ## 🚀 Quick Start
@@ -60,11 +85,12 @@ GND               →    GND (OLED & RTC & Button)
    ```bash
    cp secrets.example.yaml secrets.yaml
    ```
-3. **Edit secrets.yaml** with your WiFi credentials:
+3. **Edit secrets.yaml** with your credentials:
    ```yaml
    wifi_ssid: "Your_WiFi_SSID"
    wifi_password: "Your_WiFi_Password"
    ap_password: "Your_AP_Password"
+   api_encryption_key: "32_character_hex_key_for_home_assistant"
    ```
 
 ### 3. Installation
@@ -83,7 +109,7 @@ GND               →    GND (OLED & RTC & Button)
 
 ### Display Pages
 
-The clock cycles through three pages using the button:
+The clock cycles through three pages using the hour button:
 
 1. **Splash Screen**: GT86 car silhouette
 2. **Time Display**: 
@@ -94,8 +120,27 @@ The clock cycles through three pages using the button:
 
 ### Button Controls
 
-- **Press Button**: Cycle to next display page
-- **Hold Button**: (Future feature - time setting)
+- **Hour Button (GPIO15)**: Cycle to next display page
+- **Minute Button (GPIO23)**: (Future feature - minute adjustment)
+- **Zero Button (GPIO24)**: (Future feature - reset/zero function)
+
+### CAN Bus Monitoring
+
+The device connects to your GT86's OBD-II port to monitor:
+- Engine RPM
+- Oil pressure
+- Vehicle speed
+- Engine temperature
+- And other diagnostic data
+
+**Note**: CAN bus functionality is work in progress - waiting for GT86 for testing.
+
+### Home Assistant Integration
+
+Connect to Home Assistant using the API:
+- **API Port**: 6053
+- **Encryption**: Required (set in secrets.yaml)
+- **Reboot Timeout**: 30 minutes
 
 ### Web Interface
 
@@ -121,20 +166,35 @@ Modify pin assignments in the substitutions section:
 ```yaml
 substitutions:
   button_gpio:
-    hour: GPIO22    # Button pin
+    hour: GPIO15      # Hour/Page button
+    minute: GPIO23    # Minute button
+    zero: GPIO24      # Zero button
   display_gpio:
-    sda: GPIO18     # OLED SDA
-    scl: GPIO26     # OLED SCL
+    sda: GPIO18       # OLED SDA
+    scl: GPIO26       # OLED SCL
   rtc_gpio:
-    sda: GPIO17     # RTC SDA
-    scl: GPIO16     # RTC SCL
+    sda: GPIO17       # RTC SDA
+    scl: GPIO16       # RTC SCL
+  can_gpio:
+    int: GPIO27       # CAN interrupt
+    sck: GPIO25       # CAN SPI clock
+    si: GPIO32        # CAN SPI MOSI
+    so: GPIO12        # CAN SPI MISO
+    cs: GPIO04        # CAN SPI chip select
 ```
 
 ### Display Customization
 
 - **Font**: Uses included `blockblueprint.medium.ttf`
 - **Images**: Custom XBM format graphics in `/images/`
-- **Update Rate**: 0.01s for smooth animations
+- **Update Rate**: 0.1s for smooth animations
+
+### CAN Bus Configuration
+
+- **Platform**: MCP2515 controller
+- **Bit Rate**: 500kbps (standard for most vehicles)
+- **CAN ID**: 4
+- **Frame Monitoring**: Ready for OBD-II data capture
 
 ## 📁 Project Structure
 
@@ -171,9 +231,20 @@ substitutions:
 - Verify DS1307 RTC wiring and battery
 
 **Button Not Responding**:
-- Check GPIO22 connection
-- Verify pull-up resistor is present
+- Check GPIO connections (15, 23, 24)
+- Verify pull-up resistors are present
 - Test button continuity
+
+**CAN Bus Issues**:
+- Verify OBD-II connector wiring (pins 6 & 14)
+- Check MCP2515 SPI connections
+- Ensure proper CAN bus termination
+- Verify vehicle is running (some cars require ignition on)
+
+**Home Assistant Connection**:
+- Check API encryption key matches
+- Verify port 6053 is accessible
+- Ensure ESPHome integration is installed
 
 ### Debug Mode
 
@@ -182,6 +253,8 @@ Enable verbose logging by adding to `clock.yaml`:
 logger:
   level: DEBUG
 ```
+
+**Warning**: Setting logger to DEBUG level may crash the ESP32 due to excessive CAN bus logs. Use INFO level for normal operation.
 
 ## 🎨 Customization
 
@@ -201,6 +274,19 @@ logger:
 
 Edit the `lambda` functions in the display section to customize the layout and content.
 
+### Adding CAN Bus Data Display
+
+Once CAN bus data is captured, you can display it by adding sensors and modifying the display pages:
+
+```yaml
+# Example for future CAN data integration
+sensor:
+  - platform: template
+    name: "Engine RPM"
+    id: engine_rpm
+    unit_of_measurement: "RPM"
+```
+
 ### Font Changes
 
 Replace `blockblueprint.medium.ttf` with your preferred font and update the font section accordingly.
@@ -216,9 +302,13 @@ Contributions are welcome! Please feel free to submit issues, feature requests, 
 ## 📚 Resources
 
 - [ESPHome Documentation](https://esphome.io/)
+- [QuinLED ESP32 Board Info](https://quinled.info/quinled-esp32/)
 - [ESP32 Pinout Reference](https://randomnerdtutorials.com/esp32-pinout-reference-gpios/)
 - [SSD1306 OLED Guide](https://randomnerdtutorials.com/esp32-ssd1306-oled-display-arduino-ide/)
 - [DS1307 RTC Module](https://lastminuteengineers.com/ds1307-arduino-tutorial/)
+- [MCP2515 CAN Bus Module](https://randomnerdtutorials.com/esp32-can-bus-mcp2515/)
+- [OBD-II Pinout Reference](https://en.wikipedia.org/wiki/OBD-II_PIDs)
+- [Home Assistant ESPHome Integration](https://www.home-assistant.io/integrations/esphome/)
 
 ---
 
