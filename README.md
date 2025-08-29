@@ -70,12 +70,63 @@ Pin 6 (CAN High)  →    CAN H
 Pin 14 (CAN Low)  →    CAN L
 ```
 
+## � ESPHome Installation
+
+This project uses ESPHome with Python version management via pyenv. Follow these steps to set up your development environment:
+
+### 1. Install Python with pyenv
+
+The project uses Python 3.12.10 as specified in `.python-version`. If you don't have pyenv installed:
+
+**Windows (pyenv-win)**:
+```bash
+# Install pyenv-win via PowerShell
+Invoke-WebRequest -UseBasicParsing -Uri "https://raw.githubusercontent.com/pyenv-win/pyenv-win/master/pyenv-win/install-pyenv-win.ps1" -OutFile "./install-pyenv-win.ps1"; &"./install-pyenv-win.ps1"
+```
+
+**macOS/Linux**:
+```bash
+# Install pyenv
+curl https://pyenv.run | bash
+```
+
+### 2. Set up Python Environment
+
+```bash
+# Navigate to project directory
+cd esphome
+
+# Install Python 3.12.10 (pyenv will use .python-version file)
+pyenv install 3.12.10
+
+# Verify Python version is correct
+python --version
+# Should output: Python 3.12.10
+```
+
+### 3. Install ESPHome Dependencies
+
+```bash
+# Install wheel and ESPHome from requirements.txt
+pip install -r requirements.txt
+```
+
+### 4. Verify Installation
+
+```bash
+# Check ESPHome installation
+esphome version
+
+# Test configuration syntax
+esphome config clock.yaml
+```
+
 ## 🚀 Quick Start
 
 ### 1. Prerequisites
 
-- [ESPHome](https://esphome.io/) installed
-- Python 3.8 or higher
+- Python 3.12.10 (managed by pyenv)
+- ESPHome installed via requirements.txt
 - WiFi network credentials
 
 ### 2. Configuration
@@ -202,12 +253,13 @@ substitutions:
 ├── clock.yaml                 # Main ESPHome configuration
 ├── secrets.yaml              # WiFi credentials (git-ignored)
 ├── secrets.example.yaml      # Template for secrets
+├── requirements.txt          # Python dependencies (ESPHome, wheel)
+├── .python-version           # Python version specification (3.12.10)
 ├── blockblueprint.medium.ttf  # Custom font file
 ├── images/
 │   ├── car.xbm               # GT86 car silhouette (128x40)
 │   └── logo.xbm              # Logo graphic (32x32)
 ├── .gitignore                # Git ignore rules
-├── .python-version           # Python version specification
 └── README.md                 # This file
 ```
 
