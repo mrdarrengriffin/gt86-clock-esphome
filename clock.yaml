@@ -26,6 +26,11 @@ api:
     key: !secret api_encryption_key
   reboot_timeout: 30min
 
+# Enable OTA updates over WiFi
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
 # Define ESPHome
 # On boot, read the time from the RTC
 esphome:
@@ -35,7 +40,12 @@ esphome:
       then:
         - ds1307.read_time:
             id: ds1307_time
-        - logger.log: Time read by ds1307
+        - lambda: |-
+            ESP_LOGI("time", "Time read from DS1307 on boot");
+    - priority: 600
+      then:
+        - delay: 5s
+        - display.page.show_next: oled_display
 
 # Define the ESP32 board type
 esp32:
@@ -82,16 +92,20 @@ time:
     id: sntp_time
     timezone: ${timezone}
     servers:
-      - 0.pool.ntp.org
-      - 1.pool.ntp.org
-      - 2.pool.ntp.org
+      - 0.uk.pool.ntp.org
+      - 1.uk.pool.ntp.org
+      - 2.uk.pool.ntp.org
     on_time_sync:
       then:
         - ds1307.write_time:
             id: ds1307_time
+        - lambda: |-
+            ESP_LOGI("time", "Time synchronized from NTP to DS1307. Current NTP Time: %s", id(sntp_time).now().strftime("%Y-%m-%d %H:%M:%S").c_str());
         - delay: 1s
         - ds1307.read_time: 
             id: ds1307_time
+        - lambda: |-
+            ESP_LOGI("time", "DS1307 time after sync: %s", id(ds1307_time).now().strftime("%Y-%m-%d %H:%M:%S").c_str());
   - platform: ds1307
     id: ds1307_time
     i2c_id: rtc
@@ -121,14 +135,38 @@ binary_sensor:
       then:
         - display.page.show_next: oled_display
 
+# Button for Home Assistant to interact with the display
+button:
+  - id: ha_hour_button
+    platform: template
+    name: "Hour Button"
+    icon: mdi:alpha-h
+    on_press:
+      then:
+        - display.page.show_next: oled_display
+  - id: ha_minute_button
+    platform: template
+    name: "Minute Button"
+    icon: mdi:alpha-m
+    on_press:
+      then:
+        - display.page.show_next: oled_display
+  - id: ha_zero_button
+    platform: template
+    name: "Zero Button"
+    icon: mdi:numeric-0
+    on_press:
+      then:
+        - display.page.show_next: oled_display
+
 # Define our font. Still looking for the perfect one
 font:
   - id: font_small
     file: "blockblueprint.medium.ttf"
-    size: 22
+    size: 30
   - id: font_large
     file: "blockblueprint.medium.ttf"
-    size: 22
+    size: 42
 
 # Define the display and build the pages
 display:
