@@ -1,4 +1,4 @@
-# GT86 ESPHome Clock 🚗
+# GT86 OLED Clock 🚗
 A custom ESPHome-based digital clock and CAN bus monitor project featuring a Toyota GT86-themed OLED display with RTC backup, WiFi connectivity, and OBD-II CAN bus integration.
 
 _**Note:** This README is a work in progress and may be updated with more details and instructions. An AI overview was used for now_
