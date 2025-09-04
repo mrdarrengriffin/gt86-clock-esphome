@@ -162,20 +162,34 @@ esphome config clock.yaml
 
 ### Display Pages
 
-The clock cycles through three pages using the hour button:
+The clock auto-cycles through three pages on boot and can be controlled using any button:
 
-1. **Splash Screen**: GT86 car silhouette
-2. **Time Display**: 
+1. **Splash Screen**: GT86 car silhouette (shown on startup)
+2. **Date Display**: Current date (DD/MM/YY format) - shown first after boot sequence
+3. **Time Display**: 
    - Large digital time (HH:MM format)
    - Blinking colon every second
    - Small logo in corner
-3. **Date Display**: Current date (DD/MM/YY format)
 
 ### Button Controls
 
+**Physical Buttons**:
 - **Hour Button (GPIO15)**: Cycle to next display page
-- **Minute Button (GPIO23)**: (Future feature - minute adjustment)
-- **Zero Button (GPIO24)**: (Future feature - reset/zero function)
+- **Minute Button (GPIO14)**: Cycle to next display page  
+- **Zero Button (GPIO19)**: Cycle to next display page
+
+**Home Assistant Virtual Buttons**:
+- **Hour Button**: Template button with "H" icon for remote control
+- **Minute Button**: Template button with "M" icon for remote control
+- **Zero Button**: Template button with "0" icon for remote control
+
+### Boot Sequence
+
+1. Device boots and reads time from DS1307 RTC
+2. WiFi is disabled initially for faster startup
+3. Shows date page for 2 seconds
+4. Switches to time page
+5. WiFi enables after 3 seconds for NTP sync (if available)
 
 ### CAN Bus Monitoring
 
@@ -194,6 +208,14 @@ Connect to Home Assistant using the API:
 - **API Port**: 6053
 - **Encryption**: Required (set in secrets.yaml)
 - **Reboot Timeout**: 30 minutes
+- **Virtual Buttons**: Three template buttons (Hour, Minute, Zero) available in HA
+- **OTA Updates**: Support for over-the-air firmware updates
+
+### Time Synchronization
+
+- **NTP Servers**: Uses UK-specific NTP servers (0.uk.pool.ntp.org, etc.)
+- **Enhanced Logging**: Detailed timestamp logs for sync operations
+- **Startup Behavior**: WiFi disabled on boot for faster RTC reading, enables after 3s
 
 ### Web Interface
 
@@ -220,8 +242,8 @@ Modify pin assignments in the substitutions section:
 substitutions:
   button_gpio:
     hour: GPIO15      # Hour/Page button
-    minute: GPIO23    # Minute button
-    zero: GPIO24      # Zero button
+    minute: GPIO14    # Minute button  
+    zero: GPIO19      # Zero button
   display_gpio:
     sda: GPIO18       # OLED SDA
     scl: GPIO26       # OLED SCL
@@ -232,15 +254,17 @@ substitutions:
     int: GPIO27       # CAN interrupt
     sck: GPIO25       # CAN SPI clock
     si: GPIO32        # CAN SPI MOSI
-    so: GPIO12        # CAN SPI MISO
-    cs: GPIO04        # CAN SPI chip select
+    so: GPIO21        # CAN SPI MISO
+    cs: GPIO22        # CAN SPI chip select
 ```
 
 ### Display Customization
 
 - **Font**: Uses included `blockblueprint.medium.ttf`
+- **Font Sizes**: Small (30px) for date, Large (40px) for time
 - **Images**: Custom XBM format graphics in `/images/`
 - **Update Rate**: 0.1s for smooth animations
+- **Auto-cycling**: Display automatically cycles on boot sequence
 
 ### CAN Bus Configuration
 
@@ -285,7 +309,7 @@ substitutions:
 - Verify DS1307 RTC wiring and battery
 
 **Button Not Responding**:
-- Check GPIO connections (15, 23, 24)
+- Check GPIO connections (15, 14, 19)
 - Verify pull-up resistors are present
 - Test button continuity
 
