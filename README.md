@@ -8,12 +8,13 @@ _**Note:** This README is a work in progress and may be updated with more detail
 
 - **OLED Display**: 128x32 SSD1306 display with custom pages
 - **Real-Time Clock**: DS1307 RTC module for time persistence without WiFi
-- **WiFi Connectivity**: Auto-sync time from NTP servers
+- **WiFi Connectivity**: Auto-sync time from UK NTP servers (disabled on boot for faster startup)
+- **OTA Updates**: Over-the-air firmware updates via WiFi
 - **Custom Graphics**: GT86 car silhouette and logo graphics
-- **Multiple Display Pages**: Splash screen, time display, and date display
-- **Button Control**: Multiple buttons for display control and time setting
+- **Multiple Display Pages**: Splash screen, time display, and date display with auto-cycling
+- **Button Control**: Multiple buttons for display control (physical + Home Assistant virtual)
 - **CAN Bus Integration**: MCP2515 CAN controller for OBD-II data (RPM, oil pressure, etc.)
-- **Home Assistant Integration**: API support for smart home integration
+- **Home Assistant Integration**: API support with template buttons for remote control
 - **Web Interface**: Built-in web server for monitoring
 - **Time Persistence**: RTC backup ensures accurate time even during power outages
 
@@ -26,9 +27,9 @@ _**Note:** This README is a work in progress and may be updated with more detail
   - GPIO18/GPIO26: OLED display (SDA/SCL)
   - GPIO17/GPIO16: DS1307 RTC (SDA/SCL)
   - GPIO15: Hour button
-  - GPIO23: Minute button
-  - GPIO24: Zero button
-  - GPIO25/GPIO32/GPIO12/GPIO04: MCP2515 CAN controller (SCK/SI/SO/CS)
+  - GPIO14: Minute button
+  - GPIO19: Zero button
+  - GPIO25/GPIO32/GPIO21/GPIO22: MCP2515 CAN controller (SCK/SI/SO/CS)
   - GPIO27: CAN interrupt pin
 
 ### Components
@@ -55,12 +56,12 @@ GPIO26 (SCL)      →    OLED SCL
 GPIO17 (SDA)      →    DS1307 SDA  
 GPIO16 (SCL)      →    DS1307 SCL
 GPIO15            →    Hour Button (with pull-up)
-GPIO23            →    Minute Button (with pull-up)
-GPIO24            →    Zero Button (with pull-up)
+GPIO14            →    Minute Button (with pull-up)
+GPIO19            →    Zero Button (with pull-up)
 GPIO25 (SCK)      →    MCP2515 SCK
 GPIO32 (SI)       →    MCP2515 SI (MOSI)
-GPIO12 (SO)       →    MCP2515 SO (MISO)
-GPIO04 (CS)       →    MCP2515 CS
+GPIO21 (SO)       →    MCP2515 SO (MISO)
+GPIO22 (CS)       →    MCP2515 CS
 GPIO27            →    MCP2515 INT
 3.3V              →    VCC (OLED & RTC & MCP2515)
 GND               →    GND (All components)
@@ -142,6 +143,7 @@ esphome config clock.yaml
    wifi_password: "Your_WiFi_Password"
    ap_password: "Your_AP_Password"
    api_encryption_key: "32_character_hex_key_for_home_assistant"
+   ota_password: "secure_password_for_ota_updates"
    ```
 
 ### 3. Installation
